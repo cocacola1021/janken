@@ -23,6 +23,9 @@ public class JankenAuthConfiguration {
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.formLogin(login -> login
         .permitAll())
+        .logout(logout -> logout
+            .logoutUrl("/logout")
+            .logoutSuccessUrl("/")) // ログアウト後に / にリダイレクト
         .authorizeHttpRequests(authz -> authz
             .requestMatchers("/janken/**").authenticated() // /sample3/以下は認証済みであること
             .anyRequest().permitAll()); // 上記以外は全員アクセス可能

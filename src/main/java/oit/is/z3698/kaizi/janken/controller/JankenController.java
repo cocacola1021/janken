@@ -1,25 +1,41 @@
-
 package oit.is.z3698.kaizi.janken.controller;
 
+import java.security.Principal;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import oit.is.z3698.kaizi.janken.model.janken;
+import oit.is.z3698.kaizi.janken.model.Entry;
 
 @Controller
 public class JankenController {
 
+  @Autowired
+  private Entry entry;
+
   @GetMapping("/janken")
-  public String jankenString() {
+  public String janken(Principal prin, ModelMap model) {
+    String loginUser = prin.getName();
+    this.entry.addUser(loginUser);
+    model.addAttribute("entry", this.entry);
+
     return "janken.html";
   }
 
   @GetMapping("/jankengame")
   public String jankenGame(
+      Principal prin,
       @RequestParam(required = false) String hand,
       ModelMap model) {
+
+    // ログインユーザー情報を取得
+    String loginUser = prin.getName();
+    model.addAttribute("name", loginUser);
+    model.addAttribute("entry", this.entry);
 
     if (hand != null) {
       if (!hand.equals("Gu")
@@ -28,12 +44,12 @@ public class JankenController {
         return "redirect:/janken";
       }
 
-      janken janken = new janken();
-      janken.play(hand);
+      janken game = new janken();
+      game.play(hand);
 
-      model.addAttribute("userHand", janken.getUserHand());
-      model.addAttribute("cpuHand", janken.getCpuHand());
-      model.addAttribute("result", janken.getResult());
+      model.addAttribute("userHand", game.getUserHand());
+      model.addAttribute("cpuHand", game.getCpuHand());
+      model.addAttribute("result", game.getResult());
     }
 
     return "janken.html";
@@ -47,4 +63,5 @@ public class JankenController {
     model.addAttribute("name", name);
     return "janken.html";
   }
+
 }
