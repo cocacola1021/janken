@@ -11,7 +11,7 @@
   <h1>Janken GAME!</h1>
   <p>エントリー</p>
   <ul>
-    <li th:each="user : ${entry.users}">[[${user}]]</li>
+    <li th:each="user : ${users}">[[${user.name}]]</li>
   </ul>
 
   <p>Hi! [[${entry.users}]]</p>
