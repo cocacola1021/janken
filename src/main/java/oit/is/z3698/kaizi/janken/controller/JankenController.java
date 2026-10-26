@@ -41,35 +41,6 @@ public class JankenController {
     return "janken.html";
   }
 
-  @GetMapping("/jankengame")
-  public String jankenGame(
-      Principal prin,
-      @RequestParam(required = false) String hand,
-      ModelMap model) {
-
-    // ログインユーザー情報を取得
-    String loginUser = prin.getName();
-    model.addAttribute("name", loginUser);
-    model.addAttribute("entry", this.entry);
-
-    if (hand != null) {
-      if (!hand.equals("Gu")
-          && !hand.equals("Choki")
-          && !hand.equals("Pa")) {
-        return "redirect:/janken";
-      }
-
-      janken game = new janken();
-      game.play(hand);
-
-      model.addAttribute("userHand", game.getUserHand());
-      model.addAttribute("cpuHand", game.getCpuHand());
-      model.addAttribute("result", game.getResult());
-    }
-
-    return "janken.html";
-  }
-
   @org.springframework.web.bind.annotation.PostMapping("/janken")
   public String jankenLogin(
       @RequestParam String name,
@@ -84,6 +55,72 @@ public class JankenController {
     User cpu = userMapper.selectById(id);
     model.addAttribute("login_user", prin.getName());
     model.addAttribute("cpu", cpu);
+    return "match.html";
+  }
+
+  @GetMapping("/fight")
+  public String jankenGame(
+      Principal prin,
+      @RequestParam Integer id,
+      @RequestParam(required = false) String hand,
+      ModelMap model) {
+
+    // ログインユーザー情報
+    String loginUser = prin.getName();
+    model.addAttribute("name", loginUser);
+    model.addAttribute("login_user", loginUser);
+    model.addAttribute("entry", this.entry);
+
+    // 対戦相手を取得
+    User cpu = userMapper.selectById(id);
+
+    if (cpu == null) {
+      return "redirect:/janken";
+    }
+
+    model.addAttribute("cpu", cpu);
+
+    // ユーザー一覧と試合結果一覧
+    ArrayList<User> users = userMapper.selectAllUsers();
+    model.addAttribute("users", users);
+
+    ArrayList<Match> matches = matchMapper.selectAllMatch();
+    model.addAttribute("matches", matches);
+
+    // 手が選択されていない場合
+    if (hand == null) {
+      return "match.html";
+    }
+
+    // 入力された手を確認
+    if (!hand.equals("Gu")
+        && !hand.equals("Choki")
+        && !hand.equals("Pa")) {
+      return "redirect:/janken";
+    }
+
+    // じゃんけんを実行
+    janken game = new janken();
+    game.play(hand);
+
+    // 結果を画面に渡す
+    model.addAttribute("userHand", game.getUserHand());
+    model.addAttribute("cpuHand", game.getCpuHand());
+    model.addAttribute("result", game.getResult());
+
+    // 対戦結果をデータベースに登録
+    Match match = new Match();
+    match.setUser1(loginUser);
+    match.setUser2(cpu.getName());
+    match.setUser1Hand(game.getUserHand());
+    match.setUser2Hand(game.getCpuHand());
+
+    matchMapper.InsertMatch(match);
+
+    // 登録後の試合結果一覧を再取得
+    matches = matchMapper.selectAllMatch();
+    model.addAttribute("matches", matches);
+
     return "match.html";
   }
 
