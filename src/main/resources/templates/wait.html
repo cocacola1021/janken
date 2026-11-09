@@ -8,9 +8,44 @@
 
 <body>
 
-  <h2>相手の手を待ってます</h2>
+  <h2 id="waitMessage">相手の手を待ってます</h2>
 
   <p>Hi [[${name}]]</p>
+
+  <div id="result" style="display: none;">
+    <h3>結果</h3>
+
+    <p id="resultText"></p>
+
+    <a href="/janken">もどる</a>
+  </div>
+
+  <script>
+    const eventSource = new EventSource("/janken/asyncKekka");
+
+    eventSource.addEventListener("kekka", function (event) {
+
+      const match = JSON.parse(event.data);
+
+      // 待機メッセージは残す
+
+      // 結果を表示
+      document.getElementById("resultText").textContent =
+        "Match: id: " + match.id +
+        " user1: " + match.user1 +
+        " user2: " + match.user2 +
+        " user1Hand: " + match.user1Hand +
+        " user2Hand: " + match.user2Hand;
+
+      document.getElementById("result").style.display = "block";
+
+      eventSource.close();
+    });
+
+    eventSource.onerror = function () {
+      console.log("SSE接続中...");
+    };
+  </script>
 
 </body>
 
