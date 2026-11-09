@@ -8,7 +8,9 @@
 
 <body>
   <a href="/logout">ログアウト</a>
+
   <h1>Match</h1>
+
   <h2>[[${login_user}]] V.S. [[${cpu.name}]]</h2>
 
   <div>
@@ -17,12 +19,8 @@
     <a th:href="@{/fight(id=${cpu.id},hand='Pa')}">ぱー</a>
   </div>
 
-  <div th:if="${userHand}">
-    <div>あなたの手 <span th:text="${userHand}"></span></div>
-    <div>相手の手 <span th:text="${cpuHand}"></span></div>
-    <div>結果 <span th:text="${result}"></span></div>
-  </div>
   <a href="/janken">もどる</a>
+
 </body>
 
 </html>
