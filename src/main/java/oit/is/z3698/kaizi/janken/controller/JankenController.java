@@ -17,6 +17,7 @@ import oit.is.z3698.kaizi.janken.model.Match;
 import oit.is.z3698.kaizi.janken.model.MatchMapper;
 import oit.is.z3698.kaizi.janken.model.MatchInfo;
 import oit.is.z3698.kaizi.janken.model.MatchInfoMapper;
+import org.springframework.transaction.annotation.Transactional;
 
 @Controller
 public class JankenController {
@@ -74,6 +75,7 @@ public class JankenController {
   }
 
   @GetMapping("/fight")
+  @Transactional
   public String jankenGame(
       Principal prin,
       @RequestParam Integer id,
@@ -98,21 +100,54 @@ public class JankenController {
       return "redirect:/janken";
     }
 
-    // MatchInfoを作成
-    MatchInfo matchInfo = new MatchInfo();
+    // 相手が自分との対戦を待っているか確認
+    // user1 = 先に待機している相手
+    // user2 = 今回ログインしている自分
+    MatchInfo waitingMatch = matchInfoMapper.selectWaitingMatchInfo(user2.getId(), user1.getId());
 
-    matchInfo.setUser1(user1.getId());
-    matchInfo.setUser2(user2.getId());
-    matchInfo.setUser1Hand(hand);
-    matchInfo.setIsActive(true);
+    if (waitingMatch == null) {
 
-    // matchinfoテーブルに登録
-    matchInfoMapper.insertMatchInfo(matchInfo);
+      // 待機中の相手がいない場合、自分が先手になる
+      MatchInfo matchInfo = new MatchInfo();
 
-    // wait.htmlに表示する情報
-    model.addAttribute("name", loginUser);
+      matchInfo.setUser1(user1.getId());
+      matchInfo.setUser2(user2.getId());
+      matchInfo.setUser1Hand(hand);
+      matchInfo.setIsActive(true);
 
-    return "wait.html";
+      matchInfoMapper.insertMatchInfo(matchInfo);
+
+      // 待機画面へ
+      model.addAttribute("name", loginUser);
+
+      return "wait.html";
+
+    } else {
+
+      // 待機中の相手がいる場合、試合成立
+
+      Match match = new Match();
+
+      // 先手の情報（matchinfoから取得）
+      match.setUser1(String.valueOf(waitingMatch.getUser1()));
+      match.setUser1Hand(waitingMatch.getUser1Hand());
+
+      // 後手の情報（今回ログインしているユーザー）
+      match.setUser2(String.valueOf(user1.getId()));
+      match.setUser2Hand(hand);
+
+      // 試合成立
+      match.setIsActive(true);
+
+      // matchesテーブルに登録
+      matchMapper.InsertMatch(match);
+
+      // 先手の待機状態を解除
+      matchInfoMapper.updateMatchInfoActive(waitingMatch.getId());
+
+      // 試合成立後はjanken画面へ
+      return "redirect:/janken";
+    }
   }
 
 }
