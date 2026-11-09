@@ -15,6 +15,8 @@ import oit.is.z3698.kaizi.janken.model.User;
 import oit.is.z3698.kaizi.janken.model.UserMapper;
 import oit.is.z3698.kaizi.janken.model.Match;
 import oit.is.z3698.kaizi.janken.model.MatchMapper;
+import oit.is.z3698.kaizi.janken.model.MatchInfo;
+import oit.is.z3698.kaizi.janken.model.MatchInfoMapper;
 
 @Controller
 public class JankenController {
@@ -28,15 +30,28 @@ public class JankenController {
   @Autowired
   private MatchMapper matchMapper;
 
+  @Autowired
+  private MatchInfoMapper matchInfoMapper;
+
   @GetMapping("/janken")
   public String janken(Principal prin, ModelMap model) {
     String loginUser = prin.getName();
+
     this.entry.addUser(loginUser);
+
     model.addAttribute("entry", this.entry);
+    model.addAttribute("name", loginUser);
+
     ArrayList<User> users = userMapper.selectAllUsers();
     model.addAttribute("users", users);
+
     ArrayList<Match> matches = matchMapper.selectAllMatch();
     model.addAttribute("matches", matches);
+
+    // アクティブな試合を取得
+    ArrayList<MatchInfo> matchInfos = matchInfoMapper.selectActiveMatchInfo();
+
+    model.addAttribute("matchInfos", matchInfos);
 
     return "janken.html";
   }
@@ -62,66 +77,42 @@ public class JankenController {
   public String jankenGame(
       Principal prin,
       @RequestParam Integer id,
-      @RequestParam(required = false) String hand,
+      @RequestParam String hand,
       ModelMap model) {
 
-    // ログインユーザー情報
+    // ログインユーザーを取得
     String loginUser = prin.getName();
-    model.addAttribute("name", loginUser);
-    model.addAttribute("login_user", loginUser);
-    model.addAttribute("entry", this.entry);
+    User user1 = userMapper.selectByName(loginUser);
 
     // 対戦相手を取得
-    User cpu = userMapper.selectById(id);
+    User user2 = userMapper.selectById(id);
 
-    if (cpu == null) {
+    if (user1 == null || user2 == null) {
       return "redirect:/janken";
     }
 
-    model.addAttribute("cpu", cpu);
-
-    // ユーザー一覧と試合結果一覧
-    ArrayList<User> users = userMapper.selectAllUsers();
-    model.addAttribute("users", users);
-
-    ArrayList<Match> matches = matchMapper.selectAllMatch();
-    model.addAttribute("matches", matches);
-
-    // 手が選択されていない場合
-    if (hand == null) {
-      return "match.html";
-    }
-
-    // 入力された手を確認
+    // 手の入力チェック
     if (!hand.equals("Gu")
         && !hand.equals("Choki")
         && !hand.equals("Pa")) {
       return "redirect:/janken";
     }
 
-    // じゃんけんを実行
-    janken game = new janken();
-    game.play(hand);
+    // MatchInfoを作成
+    MatchInfo matchInfo = new MatchInfo();
 
-    // 結果を画面に渡す
-    model.addAttribute("userHand", game.getUserHand());
-    model.addAttribute("cpuHand", game.getCpuHand());
-    model.addAttribute("result", game.getResult());
+    matchInfo.setUser1(user1.getId());
+    matchInfo.setUser2(user2.getId());
+    matchInfo.setUser1Hand(hand);
+    matchInfo.setIsActive(true);
 
-    // 対戦結果をデータベースに登録
-    Match match = new Match();
-    match.setUser1(loginUser);
-    match.setUser2(cpu.getName());
-    match.setUser1Hand(game.getUserHand());
-    match.setUser2Hand(game.getCpuHand());
+    // matchinfoテーブルに登録
+    matchInfoMapper.insertMatchInfo(matchInfo);
 
-    matchMapper.InsertMatch(match);
+    // wait.htmlに表示する情報
+    model.addAttribute("name", loginUser);
 
-    // 登録後の試合結果一覧を再取得
-    matches = matchMapper.selectAllMatch();
-    model.addAttribute("matches", matches);
-
-    return "match.html";
+    return "wait.html";
   }
 
 }
