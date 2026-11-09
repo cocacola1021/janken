@@ -18,6 +18,10 @@ import oit.is.z3698.kaizi.janken.model.MatchMapper;
 import oit.is.z3698.kaizi.janken.model.MatchInfo;
 import oit.is.z3698.kaizi.janken.model.MatchInfoMapper;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.http.MediaType;
+
+import oit.is.z3698.kaizi.janken.service.AsyncKekka;
 
 @Controller
 public class JankenController {
@@ -33,6 +37,9 @@ public class JankenController {
 
   @Autowired
   private MatchInfoMapper matchInfoMapper;
+
+  @Autowired
+  private AsyncKekka asyncKekka;
 
   @GetMapping("/janken")
   public String janken(Principal prin, ModelMap model) {
@@ -148,6 +155,25 @@ public class JankenController {
       // 試合成立後はjanken画面へ
       return "redirect:/janken";
     }
+  }
+
+  @GetMapping(value = "/janken/asyncKekka", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter asyncKekka(Principal prin) {
+
+    // ログインユーザーのIDを取得
+    User user = userMapper.selectByName(prin.getName());
+
+    SseEmitter emitter = new SseEmitter(0L);
+
+    if (user == null) {
+      emitter.complete();
+      return emitter;
+    }
+
+    // 非同期で試合結果を監視
+    asyncKekka.checkMatch(emitter, user.getId());
+
+    return emitter;
   }
 
 }
